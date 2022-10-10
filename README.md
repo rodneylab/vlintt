@@ -14,5 +14,5 @@ Currently only wraps lines longer than 42 characters.
 Example usage:
 
 ```shell
-vlint --output text.vtt  text.mp3.vtt
+vlintt --output text.vtt  text.mp3.vtt
 ```

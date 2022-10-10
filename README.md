@@ -4,7 +4,7 @@
   </a>
 </p>
 <h1 align="center">
-  shash
+  vlintt
 </h1>
 
 Basic CLI tool to lint vtt (Web Video Text Tracks Format or WebVTT) files.

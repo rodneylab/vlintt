@@ -54,9 +54,9 @@ pub fn parse_timing_milliseconds(line: &str) -> IResult<&str, &str> {
 // 00:00:00.320 or mm:ss.ttt
 // hh can be up to 4 digits - todo
 pub fn parse_timing(line: &str) -> IResult<&str, &str> {
-    let (remaining_line, (parse_timing_hms, _, _)) =
+    let (remaining_line, (timing_hms, _, _)) =
         tuple((parse_timing_hms, tag("."), parse_timing_milliseconds))(line)?;
-    if parse_timing_hms.len() == 2 {
+    if timing_hms.len() == 2 {
         return Ok((remaining_line, &line[..9]));
     }
     Ok((remaining_line, &line[..12]))
@@ -76,7 +76,6 @@ pub fn parse_vtt_file(input_path: &Path, output_path: &Path, _verbose: bool) {
     let mut tokens: Vec<String> = Vec::new();
     let file = File::open(input_path).expect("[ ERROR ] Couldn't open that file!");
     let reader = BufReader::new(&file);
-
     let mut lines_iterator = reader.lines();
 
     // parse body

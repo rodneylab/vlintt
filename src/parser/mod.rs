@@ -1,7 +1,6 @@
 use nom::{
     bytes::complete::{tag, take_while_m_n},
-    character::complete::anychar,
-    multi::{fold_many0,separated_list1},
+    multi::separated_list1,
     sequence::tuple,
     IResult,
 };
@@ -19,28 +18,27 @@ fn is_digit(c: char) -> bool {
 }
 
 pub fn parse_cue_payload_text(line: &str) -> IResult<&str, Vec<&str>> {
-    fold_many0(
-        parse_cue_payload_text_line,
-        Vec::new,
-        |mut accumulator: Vec<_>, item| {
-            accumulator.push(item);
-            accumulator
-        },
-    )(line)
-}
-
-pub fn parse_cue_payload_text_line(line: &str) -> IResult<&str, &str> {
     let trimmed_line = line.trim();
-    let _ = anychar(trimmed_line)?;
     let line_length = trimmed_line.len();
-    if line_length < TARGET_CUE_PAYLOAD_TEXT_LENGTH {
-        return Ok(("", trimmed_line));
-    }
-    let last_space = match line[..TARGET_CUE_PAYLOAD_TEXT_LENGTH].rfind(' ') {
-        Some(value) => value,
-        None => TARGET_CUE_PAYLOAD_TEXT_LENGTH,
+    let output_lines = line_length.div_ceil(TARGET_CUE_PAYLOAD_TEXT_LENGTH);
+    let target_length = if line_length > 0 {
+        line_length / output_lines
+    } else {
+        0
     };
-    Ok((line[last_space..].trim(), line[..last_space].trim()))
+
+    let mut result: Vec<&str> = Vec::new();
+    let mut start: usize = 0;
+    for _ in 0..output_lines {
+        let last_space = match line[start..(start + target_length)].rfind(' ') {
+            Some(value) => value,
+            None => target_length,
+        };
+        let end = start + last_space;
+        result.push((trimmed_line[start..end]).trim());
+        start = end;
+    }
+    Ok(("", result))
 }
 
 pub fn parse_timing_hms(line: &str) -> IResult<&str, Vec<&str>> {

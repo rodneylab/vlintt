@@ -20,6 +20,7 @@ fn is_digit(c: char) -> bool {
 pub fn parse_cue_payload_text(line: &str) -> IResult<&str, Vec<&str>> {
     let trimmed_line = line.trim();
     let line_length = trimmed_line.len();
+
     let output_lines = line_length.div_ceil(TARGET_CUE_PAYLOAD_TEXT_LENGTH);
     let target_length = if line_length > 0 {
         line_length / output_lines
@@ -30,10 +31,16 @@ pub fn parse_cue_payload_text(line: &str) -> IResult<&str, Vec<&str>> {
     let mut result: Vec<&str> = Vec::new();
     let mut start: usize = 0;
     for _ in 0..output_lines {
-        let last_space = match line[start..(start + target_length)].rfind(' ') {
+        // just return whatever is left if it is already shortet than target length
+        if target_length >= trimmed_line[start..].len() {
+            result.push((trimmed_line[start..]).trim());
+            return Ok(("", result));
+        }
+        let last_space = match trimmed_line[start..(start + target_length + 1)].rfind(' ') {
             Some(value) => value,
             None => target_length,
         };
+
         let end = start + last_space;
         result.push((trimmed_line[start..end]).trim());
         start = end;

@@ -31,9 +31,9 @@ pub fn parse_cue_payload_text(line: &str) -> IResult<&str, Vec<&str>> {
     let mut result: Vec<&str> = Vec::new();
     let mut start: usize = 0;
     for _ in 0..output_lines {
-        // just return whatever is left if it is already shortet than target length
+        // just return whatever is left if it is already shorter than target length
         if target_length >= trimmed_line[start..].len() {
-            result.push((trimmed_line[start..]).trim());
+            result.push(&trimmed_line[start..]);
             return Ok(("", result));
         }
         let last_space = match trimmed_line[start..(start + target_length + 1)].rfind(' ') {
@@ -42,7 +42,7 @@ pub fn parse_cue_payload_text(line: &str) -> IResult<&str, Vec<&str>> {
         };
 
         let end = start + last_space;
-        result.push((trimmed_line[start..end]).trim());
+        result.push((trimmed_line[start..end]).trim_start());
         start = end;
     }
     Ok(("", result))

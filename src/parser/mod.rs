@@ -28,11 +28,20 @@ pub fn parse_cue_payload_text(line: &str) -> IResult<&str, Vec<&str>> {
         0
     };
 
+    // you can work with JSON in Sveltekit
+
     let mut result: Vec<&str> = Vec::new();
     let mut start: usize = 0;
-    for _ in 0..output_lines {
-        // just return whatever is left if it is already shorter than target length
-        if target_length >= trimmed_line[start..].len() {
+    for line_index in 0..output_lines {
+        println!(
+            "line: {}, target_length: {target_length}",
+            &trimmed_line[start..]
+        );
+        /* just return whatever is left if:
+         *  it is already shorter than target length
+         * we are on the last line of the cue
+         */
+        if target_length >= trimmed_line[start..].len() || line_index == output_lines - 1 {
             result.push(&trimmed_line[start..]);
             return Ok(("", result));
         }

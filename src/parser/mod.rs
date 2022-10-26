@@ -33,10 +33,6 @@ pub fn parse_cue_payload_text(line: &str) -> IResult<&str, Vec<&str>> {
     let mut result: Vec<&str> = Vec::new();
     let mut start: usize = 0;
     for line_index in 0..output_lines {
-        println!(
-            "line: {}, target_length: {target_length}",
-            &trimmed_line[start..]
-        );
         /* just return whatever is left if:
          *  it is already shorter than target length
          * we are on the last line of the cue

@@ -1,6 +1,6 @@
 [package]
 name = "vlintt"
-version = "0.0.1"
+version = "0.1.0"
 authors = ["Rodney Johnson <ask@rodneylab.com>"]
 description = "Lint Web Video Text Tracks Format (WebVTT) files"
 license = "BSD-3-Clause"

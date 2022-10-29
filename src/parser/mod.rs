@@ -1,3 +1,8 @@
+#[cfg(test)]
+mod tests;
+
+use nom::character::complete::alphanumeric1;
+use nom::sequence::separated_pair;
 use nom::{
     bytes::complete::{tag, take_while_m_n},
     multi::separated_list1,
@@ -79,6 +84,11 @@ pub fn parse_cue_timings(line: &str) -> IResult<&str, &str> {
     Ok((line, &line[..timing_length]))
 }
 
+pub fn parse_header_value(line: &str) -> IResult<&str, &str> {
+    let (_, (key, _value)) = separated_pair(alphanumeric1, tag(": "), alphanumeric1)(line)?;
+    Ok(("", key))
+}
+
 pub fn parse_vtt_file(input_path: &Path, output_path: &Path, _verbose: bool) {
     println!("[ INFO ] Parsing {:?}...", input_path);
     let start = Instant::now();
@@ -87,12 +97,25 @@ pub fn parse_vtt_file(input_path: &Path, output_path: &Path, _verbose: bool) {
     let file = File::open(input_path).expect("[ ERROR ] Couldn't open that file!");
     let reader = BufReader::new(&file);
     let mut lines_iterator = reader.lines();
+    let mut has_kind_header_value_set = false;
+    let mut has_language_header_value_set = false;
 
     // parse body
     while let Some(line) = lines_iterator.next() {
         let line_content = line.unwrap();
         match parse_cue_timings(&line_content) {
             Ok((_, cue_timings)) => {
+                if !has_kind_header_value_set || !has_language_header_value_set {
+                    if !has_kind_header_value_set {
+                        tokens.push("Kind: captions".to_string());
+                        has_kind_header_value_set = true;
+                    }
+                    if !has_language_header_value_set {
+                        tokens.push("Language: en-GB".to_string());
+                        has_language_header_value_set = true;
+                    }
+                    tokens.push("".to_string());
+                }
                 tokens.push(cue_timings.to_string());
                 for line in lines_iterator.by_ref() {
                     let line_content = line.unwrap();
@@ -111,7 +134,26 @@ pub fn parse_vtt_file(input_path: &Path, output_path: &Path, _verbose: bool) {
                 tokens.push("".to_string());
             }
             // assume this is the header block
-            Err(_) => tokens.push(line_content.to_string()),
+            Err(_) => {
+                if !has_kind_header_value_set || !has_language_header_value_set {
+                    match parse_header_value(&line_content) {
+                        Ok((_, "Kind")) => {
+                            has_kind_header_value_set = true;
+                        }
+                        Ok((_, "Language")) => {
+                            has_language_header_value_set = true;
+                        }
+                        Ok((_, &_)) => {}
+                        Err(_) => {}
+                    }
+                }
+                if !has_kind_header_value_set
+                    && !has_language_header_value_set
+                    && !line_content.is_empty()
+                {
+                    tokens.push(line_content.to_string())
+                }
+            }
         }
     }
 

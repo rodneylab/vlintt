@@ -1,12 +1,11 @@
 #[cfg(test)]
 mod tests;
 
-use nom::character::complete::alphanumeric1;
-use nom::sequence::separated_pair;
 use nom::{
     bytes::complete::{tag, take_while_m_n},
+    character::complete::alphanumeric1,
     multi::separated_list1,
-    sequence::tuple,
+    sequence::{separated_pair, tuple},
     IResult,
 };
 use std::{

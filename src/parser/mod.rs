@@ -32,8 +32,6 @@ pub fn parse_cue_payload_text(line: &str) -> IResult<&str, Vec<&str>> {
         0
     };
 
-    // you can work with JSON in Sveltekit
-
     let mut result: Vec<&str> = Vec::new();
     let mut start: usize = 0;
     for line_index in 0..output_lines {

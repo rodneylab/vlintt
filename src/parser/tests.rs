@@ -1,21 +1,45 @@
-use crate::parser::{div_ceiling, parse_cue_payload_text, parse_header_value};
+use crate::parser::{parse_cue_payload_text, parse_header_value};
 
 #[test]
-pub fn test_div_ceiling() {
-    assert_eq!(div_ceiling(8, 3), 3);
-    assert_eq!(div_ceiling(6, 2), 3);
-}
-
-#[test]
-pub fn test_parse_cue_payload_text() {
+pub fn test_parse_cue_payload_text_sticks_to_max_width_where_possible() {
     // arrange
-    let line = "Sample cue text.";
+    let line = "So, these are the people who actually work at the organization. You've got a name for each of them.";
+
+    // act
+    let result = parse_cue_payload_text(line);
 
     // assert
     assert_eq!(
-        parse_cue_payload_text(line),
-        Ok(("", vec!["Sample cue text."]))
+        result,
+        vec![
+            "So, these are the people who actually work",
+            "at the organization. You've got a name for",
+            "each of them."
+        ]
     );
+    assert_eq!(result.len(), 3);
+    assert!(result.iter().all(|val| val.len() <= 42));
+}
+
+#[test]
+pub fn test_parse_cue_payload_text_stretches_max_width_where_needed() {
+    // arrange
+    let line = "So, these are the people who actually work at the organization. For each of them, we have a name, as well as a job role and email.";
+
+    // act
+    let result = parse_cue_payload_text(line);
+
+    // assert
+    assert_eq!(
+        result,
+        vec![
+            "So, these are the people who actually work at",
+            "the organization. For each of them, we have a",
+            "name, as well as a job role and email."
+        ]
+    );
+    assert_eq!(result.len(), 3);
+    assert!(result.iter().all(|val| val.len() <= 45));
 }
 
 #[test]

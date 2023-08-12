@@ -9,6 +9,7 @@ use nom::{
     IResult,
 };
 use std::{
+    borrow::Cow,
     fs::File,
     io::{BufRead, BufReader, Write},
     path::Path,
@@ -16,54 +17,34 @@ use std::{
 };
 
 const TARGET_CUE_PAYLOAD_TEXT_LENGTH: usize = 42;
+const MAX_CUE_PAYLOAD_TEXT_OVERFLOW: usize = 3;
+const TARGET_CUE_PAYLOAD_TEXT_MAX_LINES: usize = 3;
 
 fn is_digit(c: char) -> bool {
     c.is_ascii_digit()
 }
 
-pub fn div_ceiling(numerator: usize, denominator: usize) -> usize {
-    let quotient = numerator / denominator;
-    let modulus = numerator % denominator;
-    if modulus > 0 && denominator > 0 {
-        quotient + 1
-    } else {
-        quotient
+/**
+ * Wrap text trying to balance lines, so they are approximately equal in length, where possible.
+ * Initially, limit line length to TARGET_CUE_PAYLOAD_TEXT_LENGTH, but if this results in the
+ * payload requiring more than TARGET_CUE_PAYLOAD_TEXT_MAX_LINES, incrementally relax the width
+ * limit, one character at a time, up to MAX_CUE_PAYLOAD_TEXT_OVERFLOW characaters over the target.
+ */
+fn wrap_line(line: &str) -> Vec<Cow<'_, str>> {
+    let mut result = textwrap::wrap(line, TARGET_CUE_PAYLOAD_TEXT_LENGTH);
+    let mut overflow = 1;
+    while result.len() > TARGET_CUE_PAYLOAD_TEXT_MAX_LINES
+        && overflow <= MAX_CUE_PAYLOAD_TEXT_OVERFLOW
+    {
+        result = textwrap::wrap(line, TARGET_CUE_PAYLOAD_TEXT_LENGTH + overflow);
+        overflow += 1;
     }
+    result
 }
 
-pub fn parse_cue_payload_text(line: &str) -> IResult<&str, Vec<&str>> {
+pub fn parse_cue_payload_text(line: &str) -> Vec<Cow<'_, str>> {
     let trimmed_line = line.trim();
-    let line_length = trimmed_line.len();
-
-    //let output_lines = line_length.div_ceil(TARGET_CUE_PAYLOAD_TEXT_LENGTH);
-    let output_lines = div_ceiling(line_length, TARGET_CUE_PAYLOAD_TEXT_LENGTH);
-    let target_length = if line_length > 0 {
-        line_length / output_lines
-    } else {
-        0
-    };
-
-    let mut result: Vec<&str> = Vec::new();
-    let mut start: usize = 0;
-    for line_index in 0..output_lines {
-        /* just return whatever is left if:
-         *  it is already shorter than target length
-         * we are on the last line of the cue
-         */
-        if target_length >= trimmed_line[start..].len() || line_index == output_lines - 1 {
-            result.push(&trimmed_line[start..]);
-            return Ok(("", result));
-        }
-        let last_space = match trimmed_line[start..(start + target_length + 1)].rfind(' ') {
-            Some(value) => value,
-            None => target_length,
-        };
-
-        let end = start + last_space;
-        result.push((trimmed_line[start..end]).trim_start());
-        start = end;
-    }
-    Ok(("", result))
+    wrap_line(trimmed_line)
 }
 
 pub fn parse_timing_hms(line: &str) -> IResult<&str, Vec<&str>> {
@@ -127,16 +108,13 @@ pub fn parse_vtt_file(input_path: &Path, output_path: &Path, _verbose: bool) {
                 tokens.push(cue_timings.to_string());
                 for line in lines_iterator.by_ref() {
                     let line_content = line.unwrap();
-                    if let Ok((_, payload_text_lines)) = parse_cue_payload_text(&line_content) {
-                        if payload_text_lines.is_empty() {
-                            break;
-                        }
-                        payload_text_lines
-                            .into_iter()
-                            .for_each(|payload_text_line| {
-                                tokens.push(payload_text_line.to_string())
-                            });
+                    let payload_text_lines = parse_cue_payload_text(&line_content);
+                    if payload_text_lines.is_empty() {
+                        break;
                     }
+                    payload_text_lines
+                        .into_iter()
+                        .for_each(|payload_text_line| tokens.push(payload_text_line.to_string()));
                 }
                 // assume this is the end of the cue and output a new line
                 tokens.push("".to_string());

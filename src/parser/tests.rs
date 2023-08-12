@@ -1,4 +1,10 @@
-use crate::parser::{parse_cue_payload_text, parse_header_value};
+use crate::parser::{div_ceiling, parse_cue_payload_text, parse_header_value};
+
+#[test]
+pub fn test_div_ceiling() {
+    assert_eq!(div_ceiling(8, 3), 3);
+    assert_eq!(div_ceiling(6, 2), 3);
+}
 
 #[test]
 pub fn test_parse_cue_payload_text() {

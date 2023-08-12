@@ -21,11 +21,22 @@ fn is_digit(c: char) -> bool {
     c.is_ascii_digit()
 }
 
+pub fn div_ceiling(numerator: usize, denominator: usize) -> usize {
+    let quotient = numerator / denominator;
+    let modulus = numerator % denominator;
+    if modulus > 0 && denominator > 0 {
+        quotient + 1
+    } else {
+        quotient
+    }
+}
+
 pub fn parse_cue_payload_text(line: &str) -> IResult<&str, Vec<&str>> {
     let trimmed_line = line.trim();
     let line_length = trimmed_line.len();
 
-    let output_lines = line_length.div_ceil(TARGET_CUE_PAYLOAD_TEXT_LENGTH);
+    //let output_lines = line_length.div_ceil(TARGET_CUE_PAYLOAD_TEXT_LENGTH);
+    let output_lines = div_ceiling(line_length, TARGET_CUE_PAYLOAD_TEXT_LENGTH);
     let target_length = if line_length > 0 {
         line_length / output_lines
     } else {

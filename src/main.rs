@@ -1,4 +1,3 @@
-#![feature(int_roundings)]
 mod parser;
 
 use clap::Parser;

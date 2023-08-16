@@ -1,4 +1,40 @@
-use crate::parser::{parse_cue_payload_text, parse_header_value};
+use crate::parser::{is_digit, parse_cue_payload_text, parse_header_value, parse_timing_hms};
+
+#[test]
+pub fn is_digit_returns_false_for_non_digit() {
+    // arrange
+    let character = 'a';
+
+    // act
+    let result = is_digit(character);
+
+    // assert
+    assert!(!result);
+}
+
+#[test]
+pub fn is_digit_returns_true_for_digit() {
+    // arrange
+    let character = '8';
+
+    // act
+    let result = is_digit(character);
+
+    // assert
+    assert!(result);
+}
+
+#[test]
+pub fn parse_timing_hms_parses_valid_timestamp() {
+    // arrange
+    let timestamp = "01:34:21.0000";
+
+    // act
+    let result = parse_timing_hms(timestamp);
+
+    // assert
+    assert_eq!(result, Ok((".0000", vec!["01", "34", "21"])));
+}
 
 #[test]
 pub fn test_parse_cue_payload_text_sticks_to_max_width_where_possible() {

@@ -26,9 +26,9 @@ fn is_digit(c: char) -> bool {
 
 /**
  * Wrap text trying to balance lines, so they are approximately equal in length, where possible.
- * Initially, limit line length to TARGET_CUE_PAYLOAD_TEXT_LENGTH, but if this results in the
- * payload requiring more than TARGET_CUE_PAYLOAD_TEXT_MAX_LINES, incrementally relax the width
- * limit, one character at a time, up to MAX_CUE_PAYLOAD_TEXT_OVERFLOW characaters over the target.
+ * Initially, limit line length to `TARGET_CUE_PAYLOAD_TEXT_LENGTH`, but if this results in the
+ * payload requiring more than `TARGET_CUE_PAYLOAD_TEXT_MAX_LINES`, incrementally relax the width
+ * limit, one character at a time, up to `MAX_CUE_PAYLOAD_TEXT_OVERFLOW` characters over the target.
  */
 fn wrap_line(line: &str) -> Vec<Cow<'_, str>> {
     let mut result = textwrap::wrap(line, TARGET_CUE_PAYLOAD_TEXT_LENGTH);
@@ -79,7 +79,7 @@ pub fn parse_header_value(line: &str) -> IResult<&str, &str> {
 }
 
 pub fn parse_vtt_file(input_path: &Path, output_path: &Path, _verbose: bool) {
-    println!("[ INFO ] Parsing {:?}...", input_path);
+    println!("[ INFO ] Parsing {input_path:?}...");
     let start = Instant::now();
 
     let mut tokens: Vec<String> = Vec::new();
@@ -92,63 +92,55 @@ pub fn parse_vtt_file(input_path: &Path, output_path: &Path, _verbose: bool) {
     // parse body
     while let Some(line) = lines_iterator.next() {
         let line_content = line.unwrap();
-        match parse_cue_timings(&line_content) {
-            Ok((_, cue_timings)) => {
-                if !has_kind_header_value_set || !has_language_header_value_set {
-                    if !has_kind_header_value_set {
-                        tokens.push("Kind: captions".to_string());
+
+        if let Ok((_, cue_timings)) = parse_cue_timings(&line_content) {
+            if !has_kind_header_value_set || !has_language_header_value_set {
+                if !has_kind_header_value_set {
+                    tokens.push("Kind: captions".to_string());
+                    has_kind_header_value_set = true;
+                }
+                if !has_language_header_value_set {
+                    tokens.push("Language: en-GB".to_string());
+                    has_language_header_value_set = true;
+                }
+                tokens.push(String::new());
+            }
+            tokens.push(cue_timings.to_string());
+            for line in lines_iterator.by_ref() {
+                let line_content = line.unwrap();
+                let payload_text_lines = parse_cue_payload_text(&line_content);
+                if payload_text_lines.is_empty() {
+                    break;
+                }
+                payload_text_lines
+                    .into_iter()
+                    .for_each(|payload_text_line| tokens.push(payload_text_line.to_string()));
+            }
+            // assume this is the end of the cue and output a new line
+            tokens.push(String::new());
+        } else {
+            if !has_kind_header_value_set || !has_language_header_value_set {
+                match parse_header_value(&line_content) {
+                    Ok((_, "Kind")) => {
                         has_kind_header_value_set = true;
                     }
-                    if !has_language_header_value_set {
-                        tokens.push("Language: en-GB".to_string());
+                    Ok((_, "Language")) => {
                         has_language_header_value_set = true;
                     }
-                    tokens.push("".to_string());
+                    Ok((_, &_)) | Err(_) => {}
                 }
-                tokens.push(cue_timings.to_string());
-                for line in lines_iterator.by_ref() {
-                    let line_content = line.unwrap();
-                    let payload_text_lines = parse_cue_payload_text(&line_content);
-                    if payload_text_lines.is_empty() {
-                        break;
-                    }
-                    payload_text_lines
-                        .into_iter()
-                        .for_each(|payload_text_line| tokens.push(payload_text_line.to_string()));
-                }
-                // assume this is the end of the cue and output a new line
-                tokens.push("".to_string());
             }
-            // assume this is the header block
-            Err(_) => {
-                if !has_kind_header_value_set || !has_language_header_value_set {
-                    match parse_header_value(&line_content) {
-                        Ok((_, "Kind")) => {
-                            has_kind_header_value_set = true;
-                        }
-                        Ok((_, "Language")) => {
-                            has_language_header_value_set = true;
-                        }
-                        Ok((_, &_)) => {}
-                        Err(_) => {}
-                    }
-                }
-                if !has_kind_header_value_set
-                    && !has_language_header_value_set
-                    && !line_content.is_empty()
-                {
-                    tokens.push(line_content.to_string())
-                }
+            if !has_kind_header_value_set
+                && !has_language_header_value_set
+                && !line_content.is_empty()
+            {
+                tokens.push(line_content.to_string());
             }
         }
     }
 
-    let mut outfile = match File::create(output_path) {
-        Ok(value) => value,
-        Err(_) => panic!(
-            "[ ERROR ] Was not able to create the output file: {:?}!",
-            output_path
-        ),
+    let Ok(mut outfile) = File::create(output_path) else {
+        panic!("[ ERROR ] Was not able to create the output file: {output_path:?}!",);
     };
 
     for line in &tokens {

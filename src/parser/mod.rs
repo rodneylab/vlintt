@@ -5,8 +5,8 @@ use nom::{
     bytes::complete::{tag, take_while_m_n},
     character::complete::alphanumeric1,
     multi::separated_list1,
-    sequence::{separated_pair, tuple},
-    IResult,
+    sequence::separated_pair,
+    IResult, Parser,
 };
 use std::{
     borrow::Cow,
@@ -48,7 +48,7 @@ pub fn parse_cue_payload_text(line: &str) -> Vec<Cow<'_, str>> {
 }
 
 pub fn parse_timing_hms(line: &str) -> IResult<&str, Vec<&str>> {
-    separated_list1(tag(":"), take_while_m_n(2, 2, is_digit))(line)
+    separated_list1(tag(":"), take_while_m_n(2, 2, is_digit)).parse(line)
 }
 
 pub fn parse_timing_milliseconds(line: &str) -> IResult<&str, &str> {
@@ -59,7 +59,7 @@ pub fn parse_timing_milliseconds(line: &str) -> IResult<&str, &str> {
 // hh can be up to 4 digits - todo
 pub fn parse_timing(line: &str) -> IResult<&str, &str> {
     let (remaining_line, (timing_hms, _, _)) =
-        tuple((parse_timing_hms, tag("."), parse_timing_milliseconds))(line)?;
+        (parse_timing_hms, tag("."), parse_timing_milliseconds).parse(line)?;
     if timing_hms.len() == 2 {
         return Ok((remaining_line, &line[..9]));
     }
@@ -68,13 +68,13 @@ pub fn parse_timing(line: &str) -> IResult<&str, &str> {
 
 // 00:00:00.320 --> 00:00:05.920
 pub fn parse_cue_timings(line: &str) -> IResult<&str, &str> {
-    let (_, (start, _, end)) = tuple((parse_timing, tag(" --> "), parse_timing))(line)?;
+    let (_, (start, _, end)) = (parse_timing, tag(" --> "), parse_timing).parse(line)?;
     let timing_length = start.len() + 5 + end.len();
     Ok((line, &line[..timing_length]))
 }
 
 pub fn parse_header_value(line: &str) -> IResult<&str, &str> {
-    let (_, (key, _value)) = separated_pair(alphanumeric1, tag(": "), alphanumeric1)(line)?;
+    let (_, (key, _value)) = separated_pair(alphanumeric1, tag(": "), alphanumeric1).parse(line)?;
     Ok(("", key))
 }
 

@@ -15,4 +15,4 @@ description = "Lint Web Video Text Tracks Format (WebVTT) files"
 [dependencies]
 clap = { version = "4.5.31", features = ["derive"] }
 nom = { version = "8.0.0", features = ["alloc"] }
-textwrap = "0.16.1"
+textwrap = "0.16.2"

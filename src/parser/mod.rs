@@ -79,7 +79,7 @@ pub fn parse_header_value(line: &str) -> IResult<&str, &str> {
 }
 
 pub fn parse_vtt_file(input_path: &Path, output_path: &Path, _verbose: bool) {
-    println!("[ INFO ] Parsing {input_path:?}...");
+    println!("[ INFO ] Parsing {}...", input_path.display());
     let start = Instant::now();
 
     let mut tokens: Vec<String> = Vec::new();
@@ -140,7 +140,10 @@ pub fn parse_vtt_file(input_path: &Path, output_path: &Path, _verbose: bool) {
     }
 
     let Ok(mut outfile) = File::create(output_path) else {
-        panic!("[ ERROR ] Was not able to create the output file: {output_path:?}!",);
+        panic!(
+            "[ ERROR ] Was not able to create the output file: {}!",
+            output_path.display()
+        );
     };
 
     for line in &tokens {

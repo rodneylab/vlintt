@@ -112,9 +112,9 @@ pub fn parse_vtt_file(input_path: &Path, output_path: &Path, _verbose: bool) {
                 if payload_text_lines.is_empty() {
                     break;
                 }
-                payload_text_lines
-                    .into_iter()
-                    .for_each(|payload_text_line| tokens.push(payload_text_line.to_string()));
+                for payload_text_line in payload_text_lines {
+                    tokens.push(payload_text_line.to_string());
+                }
             }
             // assume this is the end of the cue and output a new line
             tokens.push(String::new());
